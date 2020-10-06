@@ -1,0 +1,95 @@
+captainVersion: 4
+services:
+    $$cap_appname-ldap:
+        image: tiredofit/openldap-fusiondirectory:latest
+        restart: always
+        volumes:
+            - $$cap_appname-ldap-data:/var/lib/openldap
+            - $$cap_appname-ldap-slapd:/etc/openldap/slapd.d	
+            - $$cap_appname-ldap-certs:/certs/	
+            - $$cap_appname-ldap-scripts:/assets/custom-scripts/
+        environment:
+            DOMAIN: $$cap_fusionldap_domain
+            ADMIN_PASS: $$cap_admin_pass
+            CONFIG_PASS: $$cap_config_pass
+            ORGANIZATION: $$cap_org_name
+            ENABLE_READONLY_USER: $$cap_enable_read_only
+            READONLY_USER_USER: $$cap_read_only_user
+            READONLY_USER_PASS: $$cap_read_only_pass
+            SCHEMA_TYPE: nis
+            LOG_TYPE: CONSOLE
+            FUSIONDIRECTORY_ADMIN_USER: $$cap_fusion_admin_user
+            FUSIONDIRECTORY_ADMIN_PASS: $$cap_fusion_admin_pass
+        caproverExtra:
+            notExposeAsWebApp: 'true'
+    $$cap_appname-fd:
+        image: tiredofit/fusiondirectory:latest
+        restart: always
+        depends_on:
+            - $$cap_appname-ldap
+        environment:
+            LDAP1_HOST: srv-captain--$$cap_appname-ldap
+            LDAP1_NAME: production
+            LDAP1_ADMIN_PASS: $$cap_admin_pass
+            LDAP1_ADMIN_DN: $$cap_fusion_admin_dn
+            LDAP1_BASE_DN: $$cap_fusion_base_dn
+            LDAP1_PORT: $$cap_fusion_ldap_port
+        caproverExtra:
+            containerHttpPort: '80'
+caproverOneClickApp:
+    variables:
+        - id:  $$cap_fusionldap_domain
+          label: Domain For Fusion LDAP
+          defaultValue: example.org
+          description: This will serve as the Base DN
+        - id: $$cap_admin_pass
+          label: LDAP Admin Password
+          description: The admin password
+          defaultValue: admin
+        - id: $$cap_config_pass
+          label: Config pass
+          description: The admin password of the Openldap
+          defaultValue: config
+        - id: $$cap_org_name
+          label: Oragnization Name
+          defaultValue: Example Org
+          description: Text organization name
+        - id: $$cap_enable_read_only
+          label: Read Only User Enable
+          description: Enable a read only user (either true or false)
+          defaultValue: false
+        - id: $$cap_read_only_user
+          label: Read Only User
+          description: Read only user username
+          defaultValue: readonly
+        - id: $$cap_cap_read_only_pass
+          label: Read Only User Pass
+          description: Read only user password
+          defaultValue: readonly
+        - id: $$cap_fusion_admin_user
+          label: Fusion Directory Admin User
+          description: Fusion Directory Admin User
+          defaultValue: admin
+        - id: $$cap_fusion_admin_pass
+          label: Fusion Directory Admin Pass
+          description: Fusion Directory Admin Pass
+          defaultValue: admin
+        - id: $$cap_fusion_admin_dn
+          label: Admin DN
+          description: LDAP admin DN
+          defaultValue: cn=admin,dc=example,dc=org
+        - id: $$cap_fusion_base_dn
+          label: Base DN
+          decription: dc=example,dc=org
+          defaultValue: dc=example,dc=org
+        - id: $$cap_fusion_ldap_port
+          label: LDAP Port
+          decription: LDAP Port (If TLS Enabled Its 636)
+          defaultValue: 389
+
+    instructions:
+        start: Fusion Directory + Open LDAP
+        end: OpenLDAP is deployed and the admin interface is available on http://$$cap_appname-fd.$$cap_root_domain. If you want to access to your ldap server from outside, do not forget to add port mapping (389 for ldap with starttls, 636 for ldaps).
+    displayName: FusionDirectory + OpenLDAP
+    description: OpenLDAP with administration interface
+    documentation: https://hub.docker.com/r/tiredofit/fusiondirectory
